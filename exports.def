@@ -6,4 +6,10 @@ IsLoaded
 GetCurrentWeather
 GetOutgoingWeather
 GetWeatherTransition
+GetSkyMode
 GetTime
+GetCurrentLocationID
+GetWorldSpaceID
+GetCurrentWeatherClassification
+GetOutgoingWeatherClassification
+GetPlayerCameraTransformMatrices

@@ -9,6 +9,12 @@
 #include "RE/CommandTable.h"
 #include "RE/ConsoleManager.h"
 
+#include "skse64/GameAPI.h"
+#include "skse64/GameReferences.h"
+#include "skse64/GameCamera.h"
+#include "skse64/NiNodes.h"
+
+
 static PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
 static bool isLoaded = false;
 
@@ -51,12 +57,100 @@ extern "C" {
         return false;
     }
 
+    bool GetSkyMode(uint32_t &skyMode)
+    {
+        const auto sky = RE::Sky::GetSingleton();
+        if (sky)
+        {
+            skyMode = sky->skyMode;
+            return true;
+        }
+        return false;
+    }
+
     bool GetTime(float &time)
     {
         const auto sky = RE::Sky::GetSingleton();
         if (sky)
         {
             time = sky->timeOfDay;
+            return true;
+        }
+        return false;
+    }
+
+    bool GetCurrentLocationID(uint32_t &locationFormID)
+    {
+        const auto player = *g_thePlayer;
+        if (player && player->locationAC8)
+        {
+            locationFormID = player->locationAC8->formID;
+            return true;
+        }
+        return false;
+    }
+
+    bool GetWorldSpaceID(uint32_t &worldSpaceFormID)
+    {
+        const auto player = *g_thePlayer;
+        if (player && player->currentWorldSpace)
+        {
+            worldSpaceFormID = player->currentWorldSpace->formID;
+            return true;
+        }
+        return false;
+    }
+
+    // Papyrus Weather.GetClassification 
+    int32_t GetClassification(TESWeather * weather)
+    {
+        const auto flags = *((byte *)weather + 0x66F);
+
+        if (flags & 1)
+            return 0;
+        if (flags & 2)
+            return 1;
+        if (flags & 4)
+            return 2;
+        if (flags & 8)
+            return 3;
+
+        return 0xFFFFFFFF;
+    }
+
+    bool GetCurrentWeatherClassification(int32_t &classification)
+    {
+        const auto sky = RE::Sky::GetSingleton();
+        if (sky && sky->currentWeather)
+        {
+            classification = GetClassification(sky->currentWeather);
+            return true;
+        }
+        return false;
+    }
+
+    bool GetOutgoingWeatherClassification(int32_t &classification)
+    {
+        const auto sky = RE::Sky::GetSingleton();
+        if (sky && sky->outgoingWeather)
+        {
+            classification = GetClassification(sky->outgoingWeather);
+            return true;
+        }
+        return false;
+    }
+
+    bool GetPlayerCameraTransformMatrices(NiTransform &m_Local, NiTransform &m_World, NiTransform &m_OldWorld)
+    {
+        const auto playerCamera = PlayerCamera::GetSingleton();
+        if (playerCamera && playerCamera->cameraNode)
+        {
+            const auto cameraNode = playerCamera->cameraNode;
+            
+            memcpy(&m_Local, &(cameraNode->m_localTransform), sizeof(NiTransform));
+            memcpy(&m_World, &(cameraNode->m_worldTransform), sizeof(NiTransform));
+            memcpy(&m_OldWorld, &(cameraNode->m_oldWorldTransform), sizeof(NiTransform));
+
             return true;
         }
         return false;
@@ -69,9 +163,17 @@ extern "C" {
         if (console && RE::ConsoleManager::IsConsoleMode())
         {
             uint32_t currentWeatherFormId;
+            int32_t currentWeatherClassification;
             uint32_t outgoingWeatherFormId;
+            int32_t outgoingWeatherClassification;
             float weatherTransition;
+            uint32_t skyMode;
             float time;
+            uint32_t currentLocationFormID;
+            uint32_t worldSpaceFormID;
+            NiTransform m_local;
+            NiTransform m_world;
+            NiTransform m_oldWorld;
 
             console->Print("> [ENBHelperSE] Testing functions...");
 
@@ -80,20 +182,55 @@ extern "C" {
             else
                 console->Print("> [ENBHelperSE] GetCurrentWeather failed");
 
+            if (GetCurrentWeatherClassification(currentWeatherClassification))
+                console->Print("> [ENBHelperSE] Current Weather Classification: %d", currentWeatherClassification);
+            else
+                console->Print("> [ENBHelperSE] GetCurrentWeatherClassification failed");
+
             if (GetOutgoingWeather(outgoingWeatherFormId))
                 console->Print("> [ENBHelperSE] Outgoing Weather FormID: %08X", outgoingWeatherFormId);
             else
                 console->Print("> [ENBHelperSE] GetOutgoingWeather failed (will fail if no transition happening)");
+
+            if (GetOutgoingWeatherClassification(outgoingWeatherClassification))
+                console->Print("> [ENBHelperSE] Outgoing Weather Classification: %d", outgoingWeatherClassification);
+            else
+                console->Print("> [ENBHelperSE] GetOutgoingWeatherClassification failed");
 
             if (GetWeatherTransition(weatherTransition))
                 console->Print("> [ENBHelperSE] Weather Transition: %f", weatherTransition);
             else
                 console->Print("> [ENBHelperSE] GetWeatherTransition failed");
 
+            if (GetSkyMode(skyMode))
+                console->Print("> [ENBHelperSE] Sky Mode: %d", skyMode);
+            else
+                console->Print("> [ENBHelperSE] GetSkyMode failed");
+
             if (GetTime(time))
                 console->Print("> [ENBHelperSE] Time: %f", time);
             else
                 console->Print("> [ENBHelperSE] GetTime failed");
+
+            if (GetCurrentLocationID(currentLocationFormID))
+                console->Print("> [ENBHelperSE] Current Location FormID: %08X", currentLocationFormID);
+            else
+                console->Print("> [ENBHelperSE] GetCurrentLocationID failed");
+
+            if (GetWorldSpaceID(worldSpaceFormID))
+                console->Print("> [ENBHelperSE] WorldSpace FormID: %08X", worldSpaceFormID);
+            else
+                console->Print("> [ENBHelperSE] GetWorldSpaceID failed");
+
+            if (GetPlayerCameraTransformMatrices(m_local, m_world, m_oldWorld))
+            {
+                console->Print("> [ENBHelperSE] Player Camera Local NiTransform: rot %f %f %f, %f %f %f, %f %f %f pos %f %f %f scale %f", m_local.rot.arr[0], m_local.rot.arr[1], m_local.rot.arr[2], m_local.rot.arr[3], m_local.rot.arr[4], m_local.rot.arr[5], m_local.rot.arr[6], m_local.rot.arr[7], m_local.rot.arr[8], m_local.pos.x, m_local.pos.y, m_local.pos.z, m_local.scale);
+                console->Print("> [ENBHelperSE] Player Camera World NiTransform: rot %f %f %f, %f %f %f, %f %f %f pos %f %f %f scale %f", m_world.rot.arr[0], m_world.rot.arr[1], m_world.rot.arr[2], m_world.rot.arr[3], m_world.rot.arr[4], m_world.rot.arr[5], m_world.rot.arr[6], m_world.rot.arr[7], m_world.rot.arr[8], m_world.pos.x, m_world.pos.y, m_world.pos.z, m_world.scale);
+                console->Print("> [ENBHelperSE] Player Camera Old World NiTransform: rot %f %f %f, %f %f %f, %f %f %f pos %f %f %f scale %f", m_world.rot.arr[0], m_world.rot.arr[1], m_world.rot.arr[2], m_world.rot.arr[3], m_world.rot.arr[4], m_world.rot.arr[5], m_world.rot.arr[6], m_world.rot.arr[7], m_world.rot.arr[8], m_world.pos.x, m_world.pos.y, m_world.pos.z, m_world.scale);
+
+            }
+            else
+                console->Print("> [ENBHelperSE] GetPlayerCameraTransformMatrices failed");
         }
         return true;
     }
