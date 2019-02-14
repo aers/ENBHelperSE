@@ -18,6 +18,12 @@
 static PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
 static bool isLoaded = false;
 
+static RE::Sky ** g_skyPtr = nullptr;
+static PlayerCharacter ** g_playerPtr = nullptr;
+static PlayerCamera ** g_cameraPtr = nullptr;
+static RE::ConsoleManager ** g_cmPtr = nullptr;
+
+
 extern "C" {
     bool IsLoaded()
     {
@@ -26,10 +32,10 @@ extern "C" {
 
     bool GetCurrentWeather(uint32_t &currentWeatherFormID)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky && sky->currentWeather)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr && skyPtr->currentWeather)
         {
-            currentWeatherFormID = sky->currentWeather->formID;
+            currentWeatherFormID = skyPtr->currentWeather->formID;
             return true;
         }
         return false;
@@ -37,10 +43,10 @@ extern "C" {
 
     bool GetOutgoingWeather(uint32_t &outgoingWeatherFormID)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky && sky->outgoingWeather)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr && skyPtr->outgoingWeather)
         {
-            outgoingWeatherFormID = sky->outgoingWeather->formID;
+            outgoingWeatherFormID = skyPtr->outgoingWeather->formID;
             return true;
         }
         return false;
@@ -48,10 +54,10 @@ extern "C" {
 
     bool GetWeatherTransition(float &weatherTransition)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr)
         {
-            weatherTransition = sky->transition;
+            weatherTransition = skyPtr->transition;
             return true;
         }
         return false;
@@ -59,10 +65,10 @@ extern "C" {
 
     bool GetSkyMode(uint32_t &skyMode)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr)
         {
-            skyMode = sky->skyMode;
+            skyMode = skyPtr->skyMode;
             return true;
         }
         return false;
@@ -70,10 +76,10 @@ extern "C" {
 
     bool GetTime(float &time)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr)
         {
-            time = sky->timeOfDay;
+            time = skyPtr->timeOfDay;
             return true;
         }
         return false;
@@ -81,10 +87,10 @@ extern "C" {
 
     bool GetCurrentLocationID(uint32_t &locationFormID)
     {
-        const auto player = *g_thePlayer;
-        if (player && player->locationAC8)
+        const auto playerPtr = *g_playerPtr;
+        if (playerPtr && playerPtr->locationAC8)
         {
-            locationFormID = player->locationAC8->formID;
+            locationFormID = playerPtr->locationAC8->formID;
             return true;
         }
         return false;
@@ -92,10 +98,15 @@ extern "C" {
 
     bool GetWorldSpaceID(uint32_t &worldSpaceFormID)
     {
-        const auto player = *g_thePlayer;
-        if (player && player->currentWorldSpace)
+        const auto playerPtr = *g_playerPtr;
+        if (playerPtr && playerPtr->parentCell && playerPtr->parentCell->unk040 & 1)
         {
-            worldSpaceFormID = player->currentWorldSpace->formID;
+            worldSpaceFormID = 0x0;
+            return true;
+        }
+        if (playerPtr && playerPtr->currentWorldSpace)
+        {
+            worldSpaceFormID = playerPtr->currentWorldSpace->formID;
             return true;
         }
         return false;
@@ -120,10 +131,10 @@ extern "C" {
 
     bool GetCurrentWeatherClassification(int32_t &classification)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky && sky->currentWeather)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr && skyPtr->currentWeather)
         {
-            classification = GetClassification(sky->currentWeather);
+            classification = GetClassification(skyPtr->currentWeather);
             return true;
         }
         return false;
@@ -131,10 +142,10 @@ extern "C" {
 
     bool GetOutgoingWeatherClassification(int32_t &classification)
     {
-        const auto sky = RE::Sky::GetSingleton();
-        if (sky && sky->outgoingWeather)
+        const auto skyPtr = *g_skyPtr;
+        if (skyPtr && skyPtr->outgoingWeather)
         {
-            classification = GetClassification(sky->outgoingWeather);
+            classification = GetClassification(skyPtr->outgoingWeather);
             return true;
         }
         return false;
@@ -142,7 +153,7 @@ extern "C" {
 
     bool GetPlayerCameraTransformMatrices(NiTransform &m_Local, NiTransform &m_World, NiTransform &m_OldWorld)
     {
-        const auto playerCamera = PlayerCamera::GetSingleton();
+        const auto playerCamera = *g_cameraPtr;
         if (playerCamera && playerCamera->cameraNode)
         {
             const auto cameraNode = playerCamera->cameraNode;
@@ -158,7 +169,7 @@ extern "C" {
 
     bool Cmd_TestENBHelperSE_Execute(const RE::SCRIPT_PARAMETER* a_paramInfo, RE::CommandInfo::ScriptData* a_scriptData, RE::TESObjectREFR* a_thisObj, RE::TESObjectREFR* a_containingObj, RE::Script* a_scriptObj, ScriptLocals* a_locals, double& a_result, UInt32& a_opcodeOffsetPtr)
     {
-        RE::ConsoleManager* console = RE::ConsoleManager::GetSingleton();
+        const auto console = *g_cmPtr;
 
         if (console && RE::ConsoleManager::IsConsoleMode())
         {
@@ -254,7 +265,7 @@ extern "C" {
 			return false;
 		}
 
-		if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_62) {
+		if (a_skse->runtimeVersion < RUNTIME_VERSION_1_5_23 || a_skse->runtimeVersion > RUNTIME_VERSION_1_5_62) {
 			_FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
 			return false;
 		}
@@ -264,32 +275,63 @@ extern "C" {
 
 	bool SKSEPlugin_Load(const SKSEInterface* a_skse)
 	{
-        isLoaded = true;
-
-        _MESSAGE("Registering test console command");
-
-        typedef RE::SCRIPT_PARAMETER::Type Type;
-
-        RE::CommandInfo* info = RE::CommandInfo::Locate("TestLocalMap");  // Unused
-        if (info) {
-            static RE::SCRIPT_PARAMETER params[] = {
-                { "Name", Type::kString, 1 }
-            };
-            info->longName = "TestENBHelperSE";
-            info->shortName = "tehs";
-            info->helpText = "Test ENBHelperSE";
-            info->isRefRequired = false;
-            info->SetParameters(params);
-            info->execute = &Cmd_TestENBHelperSE_Execute;
-            info->eval = 0;
-
-            _MESSAGE("[DEBUG] Registered console command: %s (%s)", info->longName, info->shortName);
+        switch (a_skse->runtimeVersion)
+        {
+        case RUNTIME_VERSION_1_5_39:
+        case RUNTIME_VERSION_1_5_50:
+        case RUNTIME_VERSION_1_5_53:
+        case RUNTIME_VERSION_1_5_62:
+            {
+            g_skyPtr = RelocPtr<RE::Sky *>(0x2F283D8);
+            g_playerPtr = RelocPtr<PlayerCharacter *>(0x2F4DEF8);
+            g_cameraPtr = RelocPtr<PlayerCamera *>(0x2EEC9B8);
+            g_cmPtr = RelocPtr<RE::ConsoleManager *>(0x02F270F0);
+            isLoaded = true;
+            break;
+            }
+        case RUNTIME_VERSION_1_5_23:
+            {
+            g_skyPtr = RelocPtr<RE::Sky *>(0x2F27358);
+            g_playerPtr = RelocPtr<PlayerCharacter *>(0x2F4CE68);
+            g_cameraPtr = RelocPtr<PlayerCamera *>(0x2EEB938);
+            isLoaded = true;
+            break;
+            }
+        default:
+            {
+            _MESSAGE("Warning: Somehow got to plugin load with invalid version. Marking unloaded.");
+            isLoaded = false;
+            return false;
+            }
         }
-        else {
-            _ERROR("[ERROR] Failed to register console command!\n");
-        }
 
-        _MESSAGE("Done");
+        if (a_skse->runtimeVersion > RUNTIME_VERSION_1_5_39)
+        {
+            _MESSAGE("Registering test console command");
+
+            typedef RE::SCRIPT_PARAMETER::Type Type;
+
+            RE::CommandInfo* info = RE::CommandInfo::Locate("TestLocalMap");  // Unused
+            if (info) {
+                static RE::SCRIPT_PARAMETER params[] = {
+                    { "Name", Type::kString, 1 }
+                };
+                info->longName = "TestENBHelperSE";
+                info->shortName = "tehs";
+                info->helpText = "Test ENBHelperSE";
+                info->isRefRequired = false;
+                info->SetParameters(params);
+                info->execute = &Cmd_TestENBHelperSE_Execute;
+                info->eval = 0;
+
+                _MESSAGE("[DEBUG] Registered console command: %s (%s)", info->longName, info->shortName);
+            }
+            else {
+                _ERROR("[ERROR] Failed to register console command!\n");
+            }
+
+            _MESSAGE("Done");
+        }
 
 		return true;
 	}
