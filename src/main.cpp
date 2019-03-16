@@ -289,7 +289,7 @@ bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
 
 bool SKSEPlugin_Load(const SKSEInterface* a_skse)
 {
-    /*
+    
     _MESSAGE("Registering test console command");
 
     typedef RE::SCRIPT_PARAMETER::Type Type;
@@ -316,7 +316,7 @@ bool SKSEPlugin_Load(const SKSEInterface* a_skse)
     }
 
     _MESSAGE("Done");
-    */
+    
     isLoaded = true;
 
     return true;
