@@ -5,6 +5,8 @@
 
 #include "version.h"  // ENBHELPERSE_VERSION_VERSTRING
 
+#include "SKSE/API.h"
+
 #include "RE/CommandTable.h"
 #include "RE/ConsoleManager.h"
 #include "RE/PlayerCamera.h"
@@ -16,7 +18,6 @@
 
 #include "skse64/NiNodes.h"
 
-static PluginHandle g_pluginHandle = kPluginHandle_Invalid;
 static bool isLoaded = false;
 
 extern "C" {
@@ -156,9 +157,9 @@ bool GetPlayerCameraTransformMatrices(NiTransform& m_Local, NiTransform& m_World
     {
         const auto cameraNode = playerCamera->cameraNode;
 
-        memcpy(&m_Local, &(cameraNode->m_localTransform), sizeof(NiTransform));
-        memcpy(&m_World, &(cameraNode->m_worldTransform), sizeof(NiTransform));
-        memcpy(&m_OldWorld, &(cameraNode->m_oldWorldTransform), sizeof(NiTransform));
+        memcpy(&m_Local, &(cameraNode->localTransform), sizeof(NiTransform));
+        memcpy(&m_World, &(cameraNode->worldTransform), sizeof(NiTransform));
+        memcpy(&m_OldWorld, &(cameraNode->oldWorldTransform), sizeof(NiTransform));
 
         return true;
     }
@@ -258,43 +259,47 @@ bool Cmd_TestENBHelperSE_Execute(const RE::SCRIPT_PARAMETER* a_paramInfo, RE::Co
     return true;
 }
 
-bool SKSEPlugin_Query(const SKSEInterface* a_skse, PluginInfo* a_info)
+bool SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
-    gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\ENBHelperSE.log");
-    gLog.SetPrintLevel(IDebugLog::kLevel_DebugMessage);
-    gLog.SetLogLevel(IDebugLog::kLevel_DebugMessage);
+	SKSE::Logger::OpenRelative(FOLDERID_Documents, R"(\My Games\Skyrim Special Edition\SKSE\ENBHelperSE.log)");
+#ifdef _DEBUG
+	SKSE::Logger::SetPrintLevel(SKSE::Logger::Level::kDebugMessage);
+	SKSE::Logger::SetFlushLevel(SKSE::Logger::Level::kDebugMessage);
+#else
+	SKSE::Logger::SetPrintLevel(SKSE::Logger::Level::kMessage);
+	SKSE::Logger::SetFlushLevel(SKSE::Logger::Level::kMessage);
+#endif	
+	SKSE::Logger::UseLogStamp(true);
 
     _MESSAGE("ENBHelperSE v%s", ENBHELPERSE_VERSION_VERSTRING);
 
     a_info->infoVersion = PluginInfo::kInfoVersion;
     a_info->name = "ENBHelperSE";
-    a_info->version = 1;
+    a_info->version = ENBHELPERSE_VERSION_MAJOR;
 
-    g_pluginHandle = a_skse->GetPluginHandle();
-
-    if (a_skse->isEditor)
+    if (a_skse->IsEditor())
     {
         _FATALERROR("[FATAL ERROR] Loaded in editor, marking as incompatible!\n");
         return false;
     }
 
-    if (a_skse->runtimeVersion != RUNTIME_VERSION_1_5_73)
+    if (a_skse->RuntimeVersion() != RUNTIME_VERSION_1_5_97)
     {
-        _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->runtimeVersion);
+        _FATALERROR("[FATAL ERROR] Unsupported runtime version %08X!\n", a_skse->RuntimeVersion());
         return false;
     }
 
     return true;
 }
 
-bool SKSEPlugin_Load(const SKSEInterface* a_skse)
+bool SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {
     
     _MESSAGE("Registering test console command");
 
     typedef RE::SCRIPT_PARAMETER::Type Type;
 
-    RE::CommandInfo* info = RE::CommandInfo::Locate("TestLocalMap"); // Unused
+    RE::CommandInfo* info = RE::CommandInfo::LocateConsoleCommand("TestLocalMap"); // Unused
     if (info)
     {
         static RE::SCRIPT_PARAMETER params[] = {
