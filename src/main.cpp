@@ -1,17 +1,13 @@
 #include "functions.h"
 
-#define MAKE_EXE_VERSION_EX(major, minor, build, sub) ((((major)&0xFF) << 24) | (((minor)&0xFF) << 16) | (((build)&0xFFF) << 4) | ((sub)&0xF))
-
 extern "C" DLLEXPORT SKSE::PluginVersionData SKSEPlugin_Version = {
-	SKSE::PluginVersionData::kVersion,
-
-	1,
-	"ENBHelperSE",
-	"aers",
-	"aers00@gmail.com",
-	0,                               
-	{ MAKE_EXE_VERSION_EX(1, 6, 318, 0), 0 }, 
-	0,                               
+	.dataVersion = SKSE::PluginVersionData::kVersion,
+	.pluginVersion = 2,
+	.pluginName = "ENBHelperSE",
+	.author = "aers",
+	.supportEmail = "aers00@gmail.com",
+	.compatibleVersions = { SKSE::RUNTIME_1_6_318.pack(), 0 },
+	.xseMinimum = 0
 };
 
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
