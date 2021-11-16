@@ -1,6 +1,6 @@
 #include "functions.h"
 
-extern "C" DLLEXPORT SKSE::PluginVersionData SKSEPlugin_Version = {
+extern "C" DLLEXPORT constexpr SKSE::PluginVersionData SKSEPlugin_Version = {
 	.dataVersion = SKSE::PluginVersionData::kVersion,
 	.pluginVersion = 2,
 	.pluginName = "ENBHelperSE",
