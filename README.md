@@ -1,5 +1,3 @@
-This is a basic plugin template for use with CommonLibSSE
-
 ## Requirements
 * [CMake](https://cmake.org/)
 	* Add this to your `PATH`
@@ -16,8 +14,8 @@ This is a basic plugin template for use with CommonLibSSE
 
 ## Building
 ```
-git clone https://github.com/Ryan-rsm-McKenzie/ExamplePlugin-CommonLibSSE
-cd ExamplePlugin-CommonLibSSE
+git clone https://github.com/aers/ENBHelperSE
+cd ENBHelperSE
 git submodule update --init --recursive
 cmake -B build -S .
 ```
