@@ -1,14 +1,14 @@
 #include "functions.h"
 
-extern "C" DLLEXPORT constexpr SKSE::PluginVersionData SKSEPlugin_Version = {
-	.dataVersion = SKSE::PluginVersionData::kVersion,
-	.pluginVersion = 2,
-	.pluginName = "ENBHelperSE",
-	.author = "aers",
-	.supportEmail = "aers00@gmail.com",
-	.compatibleVersions = { SKSE::RUNTIME_1_6_318.pack(), 0 },
-	.xseMinimum = 0
-};
+extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
+	SKSE::PluginVersionData v{};
+	v.pluginVersion = Version::MAJOR;
+	v.PluginName(Version::NAME);
+	v.AuthorName("aers"sv);
+	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+	v.UsesAddressLibrary(true);
+	return v;
+}();
 
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
 {

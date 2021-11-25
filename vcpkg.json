@@ -5,9 +5,8 @@
   "homepage": "https://github.com/Ryan-rsm-McKenzie/ExamplePlugin-CommonLibSSE",
   "license": "MIT",
   "dependencies": [
-    "boost-atomic",
     "boost-stl-interfaces",
-    "span-lite",
+    "rsm-binary-io",
     "spdlog"
   ]
 }
