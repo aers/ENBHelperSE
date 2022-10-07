@@ -32,7 +32,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STR
 
 project(
 	ENBHelperSE
-	VERSION 2.1.0
+	VERSION 2.2.0
 	LANGUAGES CXX
 )
 
