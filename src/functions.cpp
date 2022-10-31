@@ -58,8 +58,9 @@ extern "C" DLLEXPORT bool GetTime(float& time)
 extern "C" DLLEXPORT bool GetCurrentLocationID(std::uint32_t& locationFormID)
 {
 	const auto playerPtr = RE::PlayerCharacter::GetSingleton();
-	if (playerPtr && playerPtr->currentLocation) {
-		locationFormID = playerPtr->currentLocation->formID;
+	if (playerPtr && playerPtr->GetCurrentLocation()
+		) {
+		locationFormID = playerPtr->GetCurrentLocation()->formID;
 		return true;
 	}
 	return false;
