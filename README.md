@@ -4,7 +4,7 @@
 * [PowerShell](https://github.com/PowerShell/PowerShell/releases/latest)
 	* (If you're on windows, you have this installed already)
 * [Vcpkg](https://github.com/microsoft/vcpkg)
-	* Clone vcpkg, run the `.\vcpkg\bootstrap-vcpkg.bat`, then run `vcpkg integrate install` to make visual studio use vcpkg.
+	* Clone vcpkg, run `.\vcpkg\bootstrap-vcpkg.bat`, then run `vcpkg integrate install` to make visual studio use vcpkg.
 * [Visual Studio Community 2022](https://visualstudio.microsoft.com/)
 	* Desktop development with C++
 
